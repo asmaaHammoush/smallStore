@@ -62,7 +62,7 @@ class userController extends Controller
     {
         $user = User::find($id);
         if (!$user) {
-            return response()->json(['message' => 'Category not found'], 404);
+            return response()->json(['message' => 'user not found'], 404);
         }
 
 //        using created_at column value add
@@ -110,8 +110,12 @@ class userController extends Controller
     public function destroy($id)
     {
         $user = User::find($id);
+        if (!$user)
+        {
+            return response()->json(['message' => 'user not found'], 404);
+        }
         $user->delete();
 
-        return response()->json(null, 204); // استجابة بدون محتوى وحالة "No Content"
+        return response()->json(['message' => 'user deleted successfully'], 404);// استجابة بدون محتوى وحالة "No Content"
     }
 }

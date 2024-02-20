@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\users\StoreUserRequest;
+use App\Http\Requests\users\UpdateUserRequest;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use App\User;
+use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 
 class userController extends Controller
@@ -18,14 +20,17 @@ class userController extends Controller
     {
         $users = User::get();
 
-//        using created_at column value add
-//        dynamically created_from column, the value of it must be like (2 hours ago, two hours
-//        ago, etc..).
-        foreach ($users as $user) {
-            $user->created_from = Carbon::parse($user->created_at)->diffForHumans();
+        if (!$users) {
+            return response()->json([
+                'message' => 'users not found'
+            ], 404);
         }
-        return response()->json(['message' => 'ok', 'data' => $users], 200);
+        return response()->json([
+            'message' => 'ok',
+            'data' => $users
+        ], 200);
     }
+
     /**
      * Show the form for creating a new resource.
      *
@@ -39,43 +44,58 @@ class userController extends Controller
     /**
      * Store a newly created resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(StoreUserRequest $request)
     {
-        $user = new User;
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = Hash::make($request->password);
-        $user->save();
+        $user = User::create(
+            [
+                'name' => $request->name,
+                'email' => $request->email,
+                'password' => $request->password,
+            ]
+        );
 
-        return response(["message"=>"ok",'data'=>$user],201);    }
+
+
+        if (!$user) {
+            return response()->json([
+                'message' => 'user not found'
+            ], 404);
+        }
+
+        return response()->json([
+            "message" => "ok",
+            'data' => $user
+        ], 201);
+    }
 
     /**
      * Display the specified resource.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function show($id)
     {
         $user = User::find($id);
         if (!$user) {
-            return response()->json(['message' => 'user not found'], 404);
+            return response()->json([
+                'message' => 'user not found'
+            ], 404);
         }
 
-//        using created_at column value add
-//        dynamically created_from column, the value of it must be like (2 hours ago, two hours
-//        ago, etc..).
-        $user->created_from = Carbon::parse($user->created_at)->diffForHumans();
-        return response()->json($user);
+        return response()->json([
+            "message" => "ok",
+            'data' => $user
+        ], 201);
     }
 
     /**
      * Show the form for editing the specified resource.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function edit($id)
@@ -86,36 +106,55 @@ class userController extends Controller
     /**
      * Update the specified resource in storage.
      *
-     * @param  \Illuminate\Http\Request  $request
-     * @param  int  $id
+     * @param \Illuminate\Http\Request $request
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(UpdateUserRequest $request, $id)
     {
-        $user = User::findOrFail($id);
-        $user->name = $request->name;
-        $user->email = $request->email;
-        $user->password = bcrypt($request->password);
-        $user->save();
+        $user = User::find($id);
+        if (!$user) {
+            return response()->json([
+                'message' => 'user not found'
+            ], 404);
+        }
 
-        return response()->json($user);
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'password' => $request->password,
+        ]);
+
+            return response()->json([
+                "message" => "ok",
+                'data' => $user
+            ], 201);
+
     }
 
     /**
      * Remove the specified resource from storage.
      *
-     * @param  int  $id
+     * @param int $id
      * @return \Illuminate\Http\Response
      */
     public function destroy($id)
     {
         $user = User::find($id);
-        if (!$user)
-        {
-            return response()->json(['message' => 'user not found'], 404);
+        if (!$user) {
+            return response()->json([
+                'message' => 'user not found'
+            ], 404);
         }
         $user->delete();
+        if (!$user) {
+            return response()->json([
+                'message' => 'user deleted successfully'
+            ], 201);// استجابة بدون محتوى وحالة "No Content"}
+        }
 
-        return response()->json(['message' => 'user deleted successfully'], 404);// استجابة بدون محتوى وحالة "No Content"
+        return response()->json([
+            'message' => 'deleted failed'
+        ], 400);
     }
 }

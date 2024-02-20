@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers;
 
-use App\Order;
-use App\Product;
+use App\Http\Requests\products\StoreProductRequest;
+use App\Http\Requests\products\UpdateProductRequest;
+use App\Models\Order;
+use App\Models\Product;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
@@ -18,13 +20,15 @@ class productController extends Controller
     {
         $products = Product::get();
 
-//        using created_at column value add
-//        dynamically created_from column, the value of it must be like (2 hours ago, two hours
-//        ago, etc..).
-        foreach ($products as $product) {
-            $product->created_from = Carbon::parse($product->created_at)->diffForHumans();
+        if (!$products) {
+            return response()->json([
+                'message' => 'Products not found'
+            ], 404);
         }
-        return response()->json(['message' => 'ok', 'data' => $products], 200);
+
+        return response()->json([
+            'message' => 'ok', 'data' => $products
+        ], 200);
     }
 
     /**
@@ -43,15 +47,27 @@ class productController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
-    public function store(Request $request)
+    public function store(StoreProductRequest $request)
     {
-        $product = new Product;
-        $product->name = $request->name;
-        $product->price = $request->price;
-        $product->quantity = $request->quantity;
-        $product->categoryId = $request->categoryId;
-        $product->save();
-        return response()->json(['message' => 'Product created successfully', 'data' => $product], 201);
+        $product =Product::create([
+            'name' => $request->name,
+            'price' => $request->price,
+            'quantity' => $request->quantity,
+            'category_id' => $request->category_id,
+            'description' => $request->description
+        ]);
+
+
+        if (!$product) {
+            return response()->json([
+                'message' => 'Product failed'
+            ], 404);
+        }
+
+        return response()->json([
+            'message' => 'Product created successfully',
+            'data' => $product
+        ], 201);
     }
 
     /**
@@ -65,14 +81,15 @@ class productController extends Controller
         $product = Product::find($id);
 
         if (!$product) {
-            return response()->json(['message' => 'Product not found'], 404);
+            return response()->json([
+                'message' => 'Product not found'
+            ], 404);
         }
 
-//        using created_at column value add
-//        dynamically created_from column, the value of it must be like (2 hours ago, two hours
-//        ago, etc..).
-        $product->created_from = Carbon::parse($product->created_at)->diffForHumans();
-        return response()->json(['message' => 'Product retrieved successfully', 'data' => $product], 200);
+        return response()->json([
+            'message' => 'Product retrieved successfully',
+            'data' => $product
+        ], 200);
     }
 
     /**
@@ -82,21 +99,28 @@ class productController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(Request $request, $id)
+    public function update(UpdateProductRequest $request, $id)
     {
         $product = Product::find($id);
 
         if (!$product) {
-            return response()->json(['message' => 'Product not found'], 404);
+            return response()->json([
+                'message' => 'Product not found'
+            ], 404);
         }
 
-        $product->name = $request->name;
-        $product->price = $request->price;
-        $product->quantity = $request->quantity;
-        $product->categoryId = $request->categoryId;
-        $product->save();
+      $product->update([
+          'name' => $request->name,
+          'price' => $request->price,
+          'quantity' => $request->quantity,
+          'category_id' => $request->category_id,
+          'description' => $request->description
+      ]);
 
-        return response()->json(['message' => 'Product updated successfully', 'data' => $product], 200);
+        return response()->json([
+            'message' => 'Product updated successfully',
+            'data' => $product
+        ], 200);
     }
 
     /**
@@ -108,13 +132,21 @@ class productController extends Controller
     public function destroy($id)
     {
         $product = Product::find($id);
-
         if (!$product) {
-            return response()->json(['message' => 'Product not found'], 404);
+            return response()->json([
+                'message' => 'Product not found'
+            ], 404);
         }
 
         $product->delete();
+        if (!$product) {
+            return response()->json([
+                'message' => 'Product deleted successfully'
+            ], 200);
+        }
 
-        return response()->json(['message' => 'Product deleted successfully'], 200);
+        return response()->json([
+            'message' => 'deleted failed'
+        ], 400);
     }
 }

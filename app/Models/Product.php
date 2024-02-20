@@ -1,7 +1,8 @@
 <?php
 
-namespace App;
+namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
@@ -10,10 +11,20 @@ class Product extends Model
         'name',
         'price',
         'quantity',
-        'categoryId',
+        'description',
+        'category_id',
         'updated_at',
         'created_at'
     ];
+
+    protected $appends = ['created_from'];
+
+
+
+    public function getCreatedFromAttribute()
+    {
+        return Carbon::parse($this->created_at)->diffForHumans();
+    }
 
     public function category()
     {

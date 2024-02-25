@@ -4,10 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\users\StoreUserRequest;
 use App\Http\Requests\users\UpdateUserRequest;
-use Carbon\Carbon;
-use Illuminate\Http\Request;
+use App\Traits\processImageTrait;
 use App\Models\User;
-use Illuminate\Support\Facades\Hash;
+
 
 class userController extends Controller
 {
@@ -16,19 +15,25 @@ class userController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
+    use processImageTrait;
+
     public function index()
     {
         $users = User::get();
-
         if (!$users) {
             return response()->json([
                 'message' => 'users not found'
             ], 404);
         }
-        return response()->json([
-            'message' => 'ok',
-            'data' => $users
-        ], 200);
+
+            foreach ($users as $user) {
+                $user->load('image:imageable_id,photo');
+            }
+            return response()->json([
+                'message' => 'ok',
+                'data' => $users
+            ], 200);
+
     }
 
     /**
@@ -49,19 +54,27 @@ class userController extends Controller
      */
     public function store(StoreUserRequest $request)
     {
+        $request->validate([
+            'photo' => '
+             max:1
+            |array',
+        ]);
+
+        $imageName = $this->photo($request,'users');
         $user = User::create(
             [
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => $request->password,
+                'product_id' => $request->product_id,
             ]
-        );
-
-
+        )->image()->create([
+           'photo' => $imageName[0]
+        ])->save();
 
         if (!$user) {
             return response()->json([
-                'message' => 'user not found'
+                'message' => 'user failed stored'
             ], 404);
         }
 
@@ -85,6 +98,7 @@ class userController extends Controller
                 'message' => 'user not found'
             ], 404);
         }
+         $user->load('image:imageable_id,photo');
 
         return response()->json([
             "message" => "ok",
@@ -112,17 +126,21 @@ class userController extends Controller
      */
     public function update(UpdateUserRequest $request, $id)
     {
+        $imageName = $this->photo($request,'users');
         $user = User::find($id);
         if (!$user) {
             return response()->json([
                 'message' => 'user not found'
             ], 404);
         }
-
         $user->update([
             'name' => $request->name,
             'email' => $request->email,
             'password' => $request->password,
+            'product_id' => $request->product_id
+        ]);
+        $user->image()->update([
+            'photo' => $imageName[0]
         ]);
 
             return response()->json([
@@ -146,15 +164,16 @@ class userController extends Controller
                 'message' => 'user not found'
             ], 404);
         }
+        $user->image()->delete();
         $user->delete();
-        if (!$user) {
+        $user = User::find($id);
+        if ($user) {
             return response()->json([
-                'message' => 'user deleted successfully'
-            ], 201);// استجابة بدون محتوى وحالة "No Content"}
+                'message' => 'deleted failed'
+            ], 400);
         }
-
         return response()->json([
-            'message' => 'deleted failed'
-        ], 400);
+            'message' => 'user deleted successfully'
+        ], 201);
     }
 }

@@ -24,15 +24,8 @@ class UpdateCategoryRequest extends FormRequest
     public function rules()
     {
         return [
-            'name' => 'string|unique:categories,name'.$this->id,
+            'name' => 'string',
             'description' => 'string|max:500',
-        ];
-    }
-
-    public function messages()
-    {
-        return [
-            'name.unique' => 'A name is already taken.',
         ];
     }
 }

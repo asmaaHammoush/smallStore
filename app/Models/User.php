@@ -55,4 +55,16 @@ class User extends Authenticatable
     {
         return Carbon::parse($this->created_at)->diffForHumans();
     }
+
+
+
+    public function image()
+    {
+        return $this->morphOne(Image::class, 'imageable');
+    }
+
+    public function product()
+    {
+        return $this->hasMany(Product::class,'product_id','id');
+    }
 }

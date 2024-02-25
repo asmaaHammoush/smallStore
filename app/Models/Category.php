@@ -24,6 +24,11 @@ class Category extends Model
 
     public function product()
     {
-        return $this->hasmany(Product::class,'categoryId','id');
+        return $this->hasmany(Product::class,'category_id','id');
+    }
+
+    public function image()
+    {
+        return $this->morphOne(Image::class, 'imageable');
     }
 }

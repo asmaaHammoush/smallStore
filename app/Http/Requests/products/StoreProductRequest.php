@@ -28,7 +28,7 @@ class StoreProductRequest extends FormRequest
             'description' => ['required','string','max:500'],
             'price'=>['required','numeric'],
             'quantity' =>['required','numeric'],
-            'category-id' => ['required','integer','exists:categories,id'],
+            'category_id' => ['required','integer','exists:categories,id'],
         ];
     }
 }

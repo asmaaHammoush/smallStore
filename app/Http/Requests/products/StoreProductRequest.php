@@ -29,6 +29,12 @@ class StoreProductRequest extends FormRequest
             'price'=>['required','numeric'],
             'quantity' =>['required','numeric'],
             'category_id' => ['required','integer','exists:categories,id'],
+            'user_id' => ['required','integer','exists:users,id'],
+            'photo' => 'array| min:2',
+            'photo.*' => 'image
+            |dimensions:width=3840,height=2160
+            |mimes:gif,png,jpg,PNG,JPG,GIF
+            |max:2700',
         ];
     }
 }

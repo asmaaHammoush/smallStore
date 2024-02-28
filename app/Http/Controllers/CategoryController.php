@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\User;
 use Illuminate\Http\Request;
 use App\Traits\processImageTrait;
+use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
@@ -21,17 +22,10 @@ class CategoryController extends Controller
     use processImageTrait;
     public function index()
     {
-        $categories = Category::get();
-        $productsByCategory = [];
+        $categories = Category::categoryWithSub()
+            ->containLittera()
+            ->get();
 
-        foreach ($categories as $category) {
-            $productsByCategory[$category->id] = $category->product()
-                ->with('user')
-                ->whereHas('user', function ($query) {
-                $query->where('name', 'like', '%a%');
-            })->priceFilter()->get();
-            $category->load('image:imageable_id,photo');
-        }
         if (!$categories) {
             return response()->json([
                 'message' => 'categories not found'
@@ -40,8 +34,8 @@ class CategoryController extends Controller
 
         return response()->json([
             'message' => 'Categories retrieved successfully',
-            'data' => $productsByCategory
-        ], 200);
+            'data' => $categories
+        ], 201);
     }
 
 
@@ -64,26 +58,31 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request)
     {
-        $request->validate([
-            'photo' => '
-             max:1
-            |array',
-        ]);
-        $imageName = $this->photo($request,'categories');
+        $imageName = $this->uploadPhoto($request, 'categories');
+        $success = false;
+       $category =new Category();
 
+        DB::transaction(function () use ($request, $imageName, &$success, &$category) {
         $category = Category::create([
             'name' => $request->name,
             'description'=>$request->description,
+            'parent_id' =>$request->parent_id,
         ])->image()->create([
             'photo' => $imageName[0]
         ])->save();
+            if (!$category) {
+                $success = false;
+                return;
+            }
+            $success = true;
+        });
 
-        if (!$category) {
+
+        if (!$success) {
             return response()->json([
                 'message' => 'Category failed'
             ], 404);
         }
-
         return response()->json([
             'message' => 'Category created successfully',
             'data' => $category
@@ -98,13 +97,10 @@ class CategoryController extends Controller
      */
     public function show($id)
     {
-        $category = Category::find($id);
-        $category->load('image:imageable_id,photo');
-        $category= $category->product()
-           ->with('user')
-           ->whereHas('user',function ($query){
-            $query->where('name','like','%a%');
-        })->priceFilter()->get();
+//        global scope
+        $category = Category::categoryWithSub()
+            ->containLittera()
+            ->find($id);
 
         if (!$category) {
             return response()->json([
@@ -145,19 +141,22 @@ class CategoryController extends Controller
                 'message' => 'Category not found'
             ], 404);
         }
-        $imageName = $this->photo($request,'categories');
-        $category->update([
-            'name' => $request->name,
-            'description' => $request->description
-        ]);
-
+        DB::transaction(function () use ($request,&$category) {
+            $category->update([
+             'name' => $request->name,
+             'description' => $request->description,
+             'parent_id' => $request->parent_id
+          ]);
+            $imageName = $this->updatePhoto($request,$category->image->photo,'categories');
             $category->image()->update([
             'photo' => $imageName[0]
-        ]);
+          ]);
+        });
+        $updatedCtegory = Category::with('image:imageable_id,photo')->find($id);
 
         return response()->json([
             'message' => 'Category updated successfully',
-            'data' => $category
+            'data' => $updatedCtegory
         ], 200);
     }
 
@@ -170,18 +169,28 @@ class CategoryController extends Controller
     public function destroy($id)
     {
         $category = Category::find($id);
+        $success = false;
         if (!$category) {
             return response()->json([
                 'message' => 'Category not found'
             ], 404);
         }
-        $category->image()->delete();
-        $category->delete();
-        $category = Category::find($id);
-        if (!$category) {
-        return response()->json([
-            'message' => 'Category deleted successfully'
-        ], 200);
+
+        DB::transaction(function () use (&$category,$id,&$success) {
+            $this->deletePhoto($category->image->photo);
+            $category->image()->delete();
+            $category->delete();
+            $category = Category::find($id);
+            if (!$category) {
+                $success = true;
+                return;
+            }
+            $success = false;
+        });
+            if ($success) {
+             return response()->json([
+              'message' => 'Category deleted successfully'
+               ], 200);
         }
 
         return response()->json([

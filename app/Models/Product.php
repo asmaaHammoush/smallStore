@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Scopes\ProductScopes;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
@@ -13,6 +14,7 @@ class Product extends Model
         'quantity',
         'description',
         'category_id',
+        'user_id',
         'updated_at',
         'created_at'
     ];
@@ -26,9 +28,11 @@ class Product extends Model
         return Carbon::parse($this->created_at)->diffForHumans();
     }
 
-    public function scopePriceFilter($query)
+//    Register for global scope
+    protected static function boot()
     {
-        return $query->where('price', '>=', 150);
+        parent::boot();
+        static::addGlobalScope(new ProductScopes);
     }
 
 
@@ -45,7 +49,7 @@ class Product extends Model
 
     public function user()
     {
-        return $this->hasOne(User::class,'product_id','id');
+        return $this->belongsTo(User::class,'user_id','id');
     }
 
     public function images()

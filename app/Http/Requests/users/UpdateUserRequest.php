@@ -30,10 +30,15 @@ class UpdateUserRequest extends FormRequest
     {
         return [
             'name' => 'string',
-            'email' => 'email | max:100',
-//                Rule::unique('users', 'email')->ignore($id),
+            'email' => ['email'
+                ,'max:100'],
+                'unique:users,email,' . $this->id,
             'password' => 'min:8',
-            'product_id' => 'integer | exists:products,id',
+            'photo' => 'array|max:1',
+            'photo.*' => 'image
+            |dimensions:width=3840,height=2160
+            |mimes:gif,png,jpg,PNG,JPG,GIF
+            |max:2700',
         ];
     }
 }

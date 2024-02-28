@@ -8,6 +8,7 @@ use App\Models\Order;
 use App\Models\Product;
 use App\Traits\processImageTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class productController extends Controller
 {
@@ -19,22 +20,15 @@ class productController extends Controller
     use processImageTrait;
     public function index()
     {
-        $products = Product::get();
-        $productsPrice=[];
-        foreach ($products as $product)
-        {
-            $productsPrice[$product->id] = $product
-            ->load('user:id,name','images:imageable_id,photo')
-             ->priceFilter()->get();
+        $products = Product::with(['user:id,name', 'images:imageable_id,photo'])->get();
 
-        }
         if (!$products) {
             return response()->json([
                 'message' => 'Products not found'
             ], 404);
         }
         return response()->json([
-            'message' => 'ok', 'data' => $productsPrice
+            'message' => 'ok', 'data' => $products
         ], 200);
     }
 
@@ -56,23 +50,29 @@ class productController extends Controller
      */
     public function store(StoreProductRequest $request)
     {
-        $request->validate([
-            'photo' => '
-            min:2
-            |array',
-        ]);
-        $imageName = $this->photo($request,'products');
+        $success = false;
+        $product =new Product();
+
+        DB::transaction(function () use ($request, &$success, &$product) {
         $product =Product::create([
             'name' => $request->name,
-            'description' => $request->description,
             'price' => $request->price,
             'quantity' => $request->quantity,
             'category_id' => $request->category_id,
+            'user_id' => $request->user_id,
+            'description' => $request->description,
         ]);
+            $imageName = $this->uploadPhoto($request,'products');
         foreach ($imageName as $image)
-            $product ->images()->create([
+            $product->images()->create([
                 'photo' => $image
             ])->save();
+            if (!$product) {
+                $success = false;
+                return;
+            }
+            $success = true;
+        });
 
         if (!$product) {
             return response()->json([
@@ -94,10 +94,8 @@ class productController extends Controller
      */
     public function show($id)
     {
-        $product = Product::find($id);
-        $product =$product
-            ->load('user:id,name','images:imageable_id,photo')
-            ->priceFilter()->get();
+        $product = Product::with('user:id,name','images:imageable_id,photo')
+                    ->find($id);
 
         if (!$product) {
             return response()->json([
@@ -120,7 +118,6 @@ class productController extends Controller
      */
     public function update(UpdateProductRequest $request, $id)
     {
-        $imageName = $this->photo($request,'products');
         $product = Product::find($id);
 
         if (!$product) {
@@ -129,25 +126,39 @@ class productController extends Controller
             ], 404);
         }
 
-      $product->update([
-          'name' => $request->name,
-          'price' => $request->price,
-          'quantity' => $request->quantity,
-          'category_id' => $request->category_id,
-          'description' => $request->description
-      ]);
-
-        foreach ($imageName as $image)
-            $product ->images()->update([
-                'photo' => $image
+        DB::transaction(function () use ($request, &$product) {
+            $product->update([
+                'name' => $request->name,
+                'price' => $request->price,
+                'quantity' => $request->quantity,
+                'category_id' => $request->category_id,
+                'description' => $request->description,
+                'user_id' => $request->user_id
             ]);
+
+            // حذف الصور القديمة
+            $oldImages = $product->images()->pluck('id')->toArray();
+            $product->images()->delete();
+
+            $imageName = [];
+            foreach ($request->file('photo') as $photo) {
+                $imageName[] = $this->updatePhotoProduct($photo,$oldImages, 'products');
+            }
+
+            foreach ($imageName as $picture) {
+                $product->images()->create([
+                    'photo' => $picture
+                ]);
+            }
+        });
+        // استعلام جديد للحصول على المعلومات المحدثة للمنتج
+        $updatedProduct = Product::with('images:imageable_id,photo')->find($id);
 
         return response()->json([
             'message' => 'Product updated successfully',
-            'data' => $product
+            'data' => $updatedProduct
         ], 200);
     }
-
     /**
      * Remove the specified resource from storage.
      *
@@ -157,14 +168,27 @@ class productController extends Controller
     public function destroy($id)
     {
         $product = Product::find($id);
+        $success = false;
         if (!$product) {
             return response()->json([
                 'message' => 'Product not found'
             ], 404);
         }
+        DB::transaction(function () use (&$product,$id,&$success) {
+            foreach ($product->images as $pic) {
+                $this->deletePhoto($pic->photo);
+            }
+            $product->images()->delete();
+           $product->delete();
 
-        $product->delete();
-        if (!$product) {
+            $product = Product::find($id);
+            if (!$product) {
+                $success = true;
+                return;
+            }
+            $success = false;
+        });
+        if ($success) {
             return response()->json([
                 'message' => 'Product deleted successfully'
             ], 200);

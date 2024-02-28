@@ -12,7 +12,8 @@ class Category extends Model
         'name',
         'description',
         'updated_at',
-        'created_at'
+        'created_at',
+        'parent_id',
     ];
     protected $appends = ['created_from'];
 
@@ -22,6 +23,20 @@ class Category extends Model
     }
 
 
+    public function scopeContainLittera($query)
+    {
+        return $query
+            ->whereHas('product.user', function ($query) {
+            $query->where('name', 'like', '%a%');
+        })->with('product.user:id,name');
+    }
+
+    public function scopeCategoryWithSub($query)
+    {
+        return $query
+            ->with('childs.product','image:imageable_id,photo');
+    }
+
     public function product()
     {
         return $this->hasmany(Product::class,'category_id','id');
@@ -30,5 +45,15 @@ class Category extends Model
     public function image()
     {
         return $this->morphOne(Image::class, 'imageable');
+    }
+
+    public function childs()
+    {
+        return $this->hasMany(Category::class, 'parent_id');
+    }
+
+    public function parent()
+    {
+        return $this->belongsTo(Category::class, 'parent_id');
     }
 }

@@ -26,7 +26,11 @@ class StoreCategoryRequest extends FormRequest
         return [
             'name' => ['required','string','unique:categories,name','max:50'],
             'description' => ['required','string','max:500'],
-
+            'photo' => 'array|max:1',
+            'photo.*' => 'image
+            |dimensions:width=3840,height=2160
+            |mimes:gif,png,jpg,PNG,JPG,GIF
+            |max:2700',
         ];
     }
 }

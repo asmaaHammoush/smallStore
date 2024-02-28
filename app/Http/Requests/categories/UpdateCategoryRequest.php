@@ -26,6 +26,11 @@ class UpdateCategoryRequest extends FormRequest
         return [
             'name' => 'string',
             'description' => 'string|max:500',
+            'photo' => 'array|max:1',
+            'photo.*' => 'image
+            |dimensions:width=3840,height=2160
+            |mimes:gif,png,jpg,PNG,JPG,GIF
+            |max:2700',
         ];
     }
 }

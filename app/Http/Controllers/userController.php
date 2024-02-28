@@ -6,6 +6,7 @@ use App\Http\Requests\users\StoreUserRequest;
 use App\Http\Requests\users\UpdateUserRequest;
 use App\Traits\processImageTrait;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 
 
 class userController extends Controller
@@ -19,16 +20,13 @@ class userController extends Controller
 
     public function index()
     {
-        $users = User::get();
+        $users = User::with('image:imageable_id,photo')->get();
         if (!$users) {
             return response()->json([
                 'message' => 'users not found'
             ], 404);
         }
 
-            foreach ($users as $user) {
-                $user->load('image:imageable_id,photo');
-            }
             return response()->json([
                 'message' => 'ok',
                 'data' => $users
@@ -52,36 +50,40 @@ class userController extends Controller
      * @param \Illuminate\Http\Request $request
      * @return \Illuminate\Http\Response
      */
+
     public function store(StoreUserRequest $request)
     {
-        $request->validate([
-            'photo' => '
-             max:1
-            |array',
-        ]);
+        $imageName = $this->uploadPhoto($request, 'users');
+        $success = false;
+        $user = new User();
 
-        $imageName = $this->photo($request,'users');
-        $user = User::create(
-            [
+        DB::transaction(function () use ($request, $imageName, &$success, &$user) {
+            $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => $request->password,
-                'product_id' => $request->product_id,
-            ]
-        )->image()->create([
-           'photo' => $imageName[0]
-        ])->save();
+            ]);
+                $user->image()->create([
+                'photo' => $imageName[0]
+            ]);
 
-        if (!$user) {
+            if (!$user) {
+                $success = false;
+                return;
+            }
+            $success = true;
+        });
+
+        if ($success) {
+            return response()->json([
+                "message" => "ok",
+                'data' => $user
+            ], 201);
+        } else {
             return response()->json([
                 'message' => 'user failed stored'
-            ], 404);
+            ], 400);
         }
-
-        return response()->json([
-            "message" => "ok",
-            'data' => $user
-        ], 201);
     }
 
     /**
@@ -92,13 +94,12 @@ class userController extends Controller
      */
     public function show($id)
     {
-        $user = User::find($id);
+        $user = User::with('image:imageable_id,photo')->find($id);
         if (!$user) {
             return response()->json([
                 'message' => 'user not found'
             ], 404);
         }
-         $user->load('image:imageable_id,photo');
 
         return response()->json([
             "message" => "ok",
@@ -126,28 +127,31 @@ class userController extends Controller
      */
     public function update(UpdateUserRequest $request, $id)
     {
-        $imageName = $this->photo($request,'users');
-        $user = User::find($id);
+        $user=User::find($id);
         if (!$user) {
             return response()->json([
                 'message' => 'user not found'
             ], 404);
         }
-        $user->update([
+
+        DB::transaction(function () use ($request,&$user) {
+            $imageName = $this->updatePhoto($request,$user->image->photo,'users');
+            $user->update([
             'name' => $request->name,
             'email' => $request->email,
             'password' => $request->password,
-            'product_id' => $request->product_id
         ]);
-        $user->image()->update([
+            $user->image()->update([
             'photo' => $imageName[0]
         ]);
 
-            return response()->json([
-                "message" => "ok",
-                'data' => $user
-            ], 201);
+        });
+        $updatedUser = User::with('image:imageable_id,photo')->find($id);
 
+        return response()->json([
+            "message" => "ok",
+            'data' => $updatedUser
+        ], 200);
     }
 
     /**
@@ -159,21 +163,31 @@ class userController extends Controller
     public function destroy($id)
     {
         $user = User::find($id);
+        $success = false;
         if (!$user) {
             return response()->json([
                 'message' => 'user not found'
             ], 404);
         }
-        $user->image()->delete();
-        $user->delete();
-        $user = User::find($id);
-        if ($user) {
+        DB::transaction(function () use (&$user,$id,&$success) {
+            $this->deletePhoto($user->image->photo);
+            $user->image()->delete();
+            $user->delete();
+            $user = User::find($id);
+            if (!$user) {
+                $success = true;
+                return;
+            }
+            $success = false;
+     });
+        if (!$success) {
             return response()->json([
                 'message' => 'deleted failed'
             ], 400);
-        }
+        } else {
         return response()->json([
             'message' => 'user deleted successfully'
         ], 201);
+        }
     }
 }

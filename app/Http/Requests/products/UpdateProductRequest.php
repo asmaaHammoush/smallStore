@@ -29,6 +29,12 @@ class UpdateProductRequest extends FormRequest
             'price'=>'numeric',
             'quantity' =>'numeric',
             'category-id' => 'integer|exists:categories,id',
+            'user_id' => ['integer','exists:users,id'],
+            'photo' => 'array| min:2',
+            'photo.*' => 'image
+            |dimensions:width=3840,height=2160
+            |mimes:gif,png,jpg,PNG,JPG,GIF
+            |max:2700',
         ];
     }
 

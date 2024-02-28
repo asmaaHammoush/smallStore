@@ -25,7 +25,6 @@ $factory->define(User::class, function (Faker $faker) {
         'name' => $faker->name,
         'email' => $faker->unique()->safeEmail,
         'password' => Hash::make('password'),
-        'product_id' => Product::inRandomOrder()->first()->id,
     ];
 });
 

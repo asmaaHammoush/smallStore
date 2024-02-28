@@ -27,9 +27,3 @@ Route::prefix('v1')->group(function (){
     route::apiResource('categories','CategoryController');
 });
 
-Route::prefix('v1')->group(function (){
-
-route::post('categories/update/{id}','CategoryController@update');
-route::post('products/update/{id}','productController@update');
-route::post('users/update/{id}','userController@update');
-});

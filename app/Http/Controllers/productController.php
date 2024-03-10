@@ -14,6 +14,7 @@ use App\Traits\processImageTrait;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 class productController extends Controller
 {
@@ -180,7 +181,9 @@ class productController extends Controller
     }
 
     public function acceptProduct($id){
-        if (Auth::user()->role == 'admin'){
+        if (Gate::denies('isAdmin')){
+            return $this->responseError('only admin can reject or accept the products',403);
+        }
             $product =Product::find($id);
             $product->status ='accept';
             $product->save();
@@ -189,13 +192,13 @@ class productController extends Controller
             $user->notify(new ProductNotification($product->name,null,$product->status,'email'));
             return $this->responseSuccess('you accept this product');
         }
-        return $this->responseError('only admin can reject or accept the products',401);
-        }
 
 
 
     public function rejectProduct($id){
-        if (Auth::user()->role == 'admin'){
+        if (Gate::denies('isAdmin')){
+            return $this->responseError('only admin can reject or accept the products',403);
+        }
             $product =Product::find($id);
             $product->status ='reject';
             $product->save();
@@ -203,7 +206,5 @@ class productController extends Controller
             $user =User::find($product->user_id);
             $user->notify(new ProductNotification($product->name,null,$product->status,'email'));
             return $this->responseSuccess('you reject this product');
-        }
-        return $this->responseError('only admin can reject or accept the products',401);
     }
 }

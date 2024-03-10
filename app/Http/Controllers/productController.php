@@ -6,8 +6,13 @@ use App\Http\Requests\products\StoreProductRequest;
 use App\Http\Requests\products\UpdateProductRequest;
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\User;
+use App\Notifications\ProductNotification;
+use App\Notifications\UserNotification;
+use App\Traits\HttpResponses;
 use App\Traits\processImageTrait;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class productController extends Controller
@@ -17,19 +22,14 @@ class productController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    use processImageTrait;
+    use processImageTrait,HttpResponses;
     public function index()
     {
         $products = Product::with(['user:id,name', 'images:imageable_id,photo'])->get();
-
         if (!$products) {
-            return response()->json([
-                'message' => 'Products not found'
-            ], 404);
+            return $this->responseError('Products not found',404);
         }
-        return response()->json([
-            'message' => 'ok', 'data' => $products
-        ], 200);
+        return $this->success($products,'ok');
     }
 
     /**
@@ -62,7 +62,7 @@ class productController extends Controller
             'user_id' => $request->user_id,
             'description' => $request->description,
         ]);
-            $imageName = $this->uploadPhoto($request,'products');
+        $imageName = $this->uploadPhoto($request,'products');
         foreach ($imageName as $image)
             $product->images()->create([
                 'photo' => $image
@@ -73,17 +73,17 @@ class productController extends Controller
             }
             $success = true;
         });
-
         if (!$product) {
-            return response()->json([
-                'message' => 'Product failed'
-            ], 404);
+            return $this->responseError('Product failed',404);
         }
 
-        return response()->json([
-            'message' => 'Product created successfully',
-            'data' => $product
-        ], 201);
+        $admin =User::where('role','admin')->first();
+        $user =User::find($product->user_id);
+        $adminNotification =new ProductNotification($product->name,$user,null,'database');
+        $admin->notify($adminNotification);
+        return $this->success($product,
+            'The product added successfully, please wait to accept it by admin.');
+
     }
 
     /**
@@ -98,15 +98,9 @@ class productController extends Controller
                     ->find($id);
 
         if (!$product) {
-            return response()->json([
-                'message' => 'Product not found'
-            ], 404);
+            return $this->responseError('Product not found',404);
         }
-
-        return response()->json([
-            'message' => 'Product retrieved successfully',
-            'data' => $product
-        ], 200);
+        return $this->success($product,'Product retrieved successfully');
     }
 
     /**
@@ -121,9 +115,7 @@ class productController extends Controller
         $product = Product::find($id);
 
         if (!$product) {
-            return response()->json([
-                'message' => 'Product not found'
-            ], 404);
+            return $this->responseError('Product not found',404);
         }
 
         DB::transaction(function () use ($request, &$product) {
@@ -151,13 +143,8 @@ class productController extends Controller
                 ]);
             }
         });
-        // استعلام جديد للحصول على المعلومات المحدثة للمنتج
         $updatedProduct = Product::with('images:imageable_id,photo')->find($id);
-
-        return response()->json([
-            'message' => 'Product updated successfully',
-            'data' => $updatedProduct
-        ], 200);
+         return $this->success($updatedProduct,'Product updated successfully');
     }
     /**
      * Remove the specified resource from storage.
@@ -170,9 +157,7 @@ class productController extends Controller
         $product = Product::find($id);
         $success = false;
         if (!$product) {
-            return response()->json([
-                'message' => 'Product not found'
-            ], 404);
+            return $this->responseError( 'Product not found',404);
         }
         DB::transaction(function () use (&$product,$id,&$success) {
             foreach ($product->images as $pic) {
@@ -189,13 +174,36 @@ class productController extends Controller
             $success = false;
         });
         if ($success) {
-            return response()->json([
-                'message' => 'Product deleted successfully'
-            ], 200);
+            return $this->responseSuccess('Product deleted successfully');
+        }
+        return $this->responseError('deleted failed',404);
+    }
+
+    public function acceptProduct($id){
+        if (Auth::user()->role == 'admin'){
+            $product =Product::find($id);
+            $product->status ='accept';
+            $product->save();
+
+            $user =User::find($product->user_id);
+            $user->notify(new ProductNotification($product->name,null,$product->status,'email'));
+            return $this->responseSuccess('you accept this product');
+        }
+        return $this->responseError('only admin can reject or accept the products',401);
         }
 
-        return response()->json([
-            'message' => 'deleted failed'
-        ], 400);
+
+
+    public function rejectProduct($id){
+        if (Auth::user()->role == 'admin'){
+            $product =Product::find($id);
+            $product->status ='reject';
+            $product->save();
+
+            $user =User::find($product->user_id);
+            $user->notify(new ProductNotification($product->name,null,$product->status,'email'));
+            return $this->responseSuccess('you reject this product');
+        }
+        return $this->responseError('only admin can reject or accept the products',401);
     }
 }

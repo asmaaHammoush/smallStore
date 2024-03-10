@@ -4,8 +4,11 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\users\StoreUserRequest;
 use App\Http\Requests\users\UpdateUserRequest;
+use App\Traits\HttpResponses;
 use App\Traits\processImageTrait;
 use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 
@@ -16,22 +19,15 @@ class userController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    use processImageTrait;
+    use processImageTrait,HttpResponses;
 
     public function index()
     {
         $users = User::with('image:imageable_id,photo')->get();
         if (!$users) {
-            return response()->json([
-                'message' => 'users not found'
-            ], 404);
+            return $this->responseError('users not found',404);
         }
-
-            return response()->json([
-                'message' => 'ok',
-                'data' => $users
-            ], 200);
-
+        return $this->success($users,'ok');
     }
 
     /**
@@ -75,15 +71,10 @@ class userController extends Controller
         });
 
         if ($success) {
-            return response()->json([
-                "message" => "ok",
-                'data' => $user
-            ], 201);
-        } else {
-            return response()->json([
-                'message' => 'user failed stored'
-            ], 400);
+            return $this->success($user, "ok");
         }
+            return $this->responseError('user failed stored',400);
+
     }
 
     /**
@@ -96,15 +87,9 @@ class userController extends Controller
     {
         $user = User::with('image:imageable_id,photo')->find($id);
         if (!$user) {
-            return response()->json([
-                'message' => 'user not found'
-            ], 404);
+            return $this->responseError('user not found',404);
         }
-
-        return response()->json([
-            "message" => "ok",
-            'data' => $user
-        ], 201);
+         return $this->success($user,"ok");
     }
 
     /**
@@ -129,13 +114,12 @@ class userController extends Controller
     {
         $user=User::find($id);
         if (!$user) {
-            return response()->json([
-                'message' => 'user not found'
-            ], 404);
+            return $this->responseError('user not found',404);
         }
 
         DB::transaction(function () use ($request,&$user) {
             $imageName = $this->updatePhoto($request,$user->image->photo,'users');
+            $user->images()->delete();
             $user->update([
             'name' => $request->name,
             'email' => $request->email,
@@ -147,11 +131,7 @@ class userController extends Controller
 
         });
         $updatedUser = User::with('image:imageable_id,photo')->find($id);
-
-        return response()->json([
-            "message" => "ok",
-            'data' => $updatedUser
-        ], 200);
+        return $this->success($updatedUser,"ok");
     }
 
     /**
@@ -165,9 +145,7 @@ class userController extends Controller
         $user = User::find($id);
         $success = false;
         if (!$user) {
-            return response()->json([
-                'message' => 'user not found'
-            ], 404);
+            return $this->responseError('user not found',404);
         }
         DB::transaction(function () use (&$user,$id,&$success) {
             $this->deletePhoto($user->image->photo);
@@ -181,13 +159,8 @@ class userController extends Controller
             $success = false;
      });
         if (!$success) {
-            return response()->json([
-                'message' => 'deleted failed'
-            ], 400);
-        } else {
-        return response()->json([
-            'message' => 'user deleted successfully'
-        ], 201);
+          return $this->responseError('deleted failed',400);
         }
+           return $this->responseSuccess('user deleted successfully');
     }
 }

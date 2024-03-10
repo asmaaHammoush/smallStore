@@ -7,6 +7,7 @@ use App\Models\Category;
 use App\Http\Requests\categories\StoreCategoryRequest;
 use App\Models\Product;
 use App\Models\User;
+use App\Traits\HttpResponses;
 use Illuminate\Http\Request;
 use App\Traits\processImageTrait;
 use Illuminate\Support\Facades\DB;
@@ -19,23 +20,18 @@ class CategoryController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    use processImageTrait;
+    use processImageTrait,HttpResponses;
     public function index()
     {
         $categories = Category::categoryWithSub()
+            ->whereNull('parent_id')
             ->containLittera()
             ->get();
 
         if (!$categories) {
-            return response()->json([
-                'message' => 'categories not found'
-            ], 404);
+            return $this->responseError('categories not found',404);
         }
-
-        return response()->json([
-            'message' => 'Categories retrieved successfully',
-            'data' => $categories
-        ], 201);
+        return $this->success($categories,'Categories retrieved successfully');
     }
 
 
@@ -76,17 +72,10 @@ class CategoryController extends Controller
             }
             $success = true;
         });
-
-
         if (!$success) {
-            return response()->json([
-                'message' => 'Category failed'
-            ], 404);
+            return $this->responseError('Category failed',404);
         }
-        return response()->json([
-            'message' => 'Category created successfully',
-            'data' => $category
-        ], 201);
+        return $this->success($category,'Category created successfully');
     }
 
     /**
@@ -101,17 +90,10 @@ class CategoryController extends Controller
         $category = Category::categoryWithSub()
             ->containLittera()
             ->find($id);
-
         if (!$category) {
-            return response()->json([
-                'message' => 'Category not found'
-            ], 404);
+            return $this->responseError('category not found',404);
         }
-
-        return response()->json([
-            'message' => 'Category retrieved successfully',
-            'data' => $category
-        ], 200);
+        return $this->success($category,'Category retrieved successfully');
     }
 
     /**
@@ -137,9 +119,7 @@ class CategoryController extends Controller
     {
         $category = Category::find($id);
         if (!$category) {
-            return response()->json([
-                'message' => 'Category not found'
-            ], 404);
+            return $this->responseError('category not found',404);
         }
         DB::transaction(function () use ($request,&$category) {
             $category->update([
@@ -154,10 +134,7 @@ class CategoryController extends Controller
         });
         $updatedCtegory = Category::with('image:imageable_id,photo')->find($id);
 
-        return response()->json([
-            'message' => 'Category updated successfully',
-            'data' => $updatedCtegory
-        ], 200);
+       return $this->success($updatedCtegory,'Category updated successfully');
     }
 
     /**
@@ -171,9 +148,7 @@ class CategoryController extends Controller
         $category = Category::find($id);
         $success = false;
         if (!$category) {
-            return response()->json([
-                'message' => 'Category not found'
-            ], 404);
+            return $this->responseError('category not found',404);
         }
 
         DB::transaction(function () use (&$category,$id,&$success) {
@@ -188,13 +163,8 @@ class CategoryController extends Controller
             $success = false;
         });
             if ($success) {
-             return response()->json([
-              'message' => 'Category deleted successfully'
-               ], 200);
+            return $this->responseSuccess('Category deleted successfully');
         }
-
-        return response()->json([
-            'message' => 'deleted failed'
-        ], 400);
+           return $this->responseError('deleted failed',400);
     }
 }

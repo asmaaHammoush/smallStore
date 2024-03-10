@@ -34,7 +34,7 @@ class Category extends Model
     public function scopeCategoryWithSub($query)
     {
         return $query
-            ->with('childs.product','image:imageable_id,photo');
+            ->with('childs','image:imageable_id,photo','product.user');
     }
 
     public function product()
@@ -49,7 +49,13 @@ class Category extends Model
 
     public function childs()
     {
-        return $this->hasMany(Category::class, 'parent_id');
+        return $this->hasMany(Category::class, 'parent_id')
+            ->select([
+                'id',
+                'name',
+                'parent_id',
+                'created_at'
+            ])->with(['childs', 'product.user']);;
     }
 
     public function parent()

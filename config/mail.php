@@ -45,6 +45,17 @@ return [
             'auth_mode' => null,
         ],
 
+        'admin' => [
+            'transport' => 'smtp',
+            'host' => env('MAIL_HOST', 'smtp.mailtrap.io'),
+            'port' => env('MAIL_PORT', 2525),
+            'encryption' => env('MAIL_ENCRYPTION', 'tls'),
+            'username' => env('1d94f31f4bfa23'),
+            'password' => env('a9b0554317e352'),
+            'timeout' => null,
+            'auth_mode' => null,
+        ],
+
         'ses' => [
             'transport' => 'ses',
         ],

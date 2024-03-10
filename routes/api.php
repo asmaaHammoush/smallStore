@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\productController;
 use App\Http\Controllers\userController;
@@ -17,13 +18,11 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::middleware('auth:api')->get('/user', function (Request $request) {
-    return $request->user();
-});
 
-Route::prefix('v1')->group(function (){
-    route::apiResource('users','userController');
-    route::apiResource('products','productController');
-    route::apiResource('categories','CategoryController');
+Route::prefix('v1')->group(function () {
+include __DIR__ . '/routesApi/auth.php';
+include __DIR__ . '/routesApi/products.php';
+include __DIR__ . '/routesApi/users.php';
+include __DIR__ . '/routesApi/categories.php';
 });
 

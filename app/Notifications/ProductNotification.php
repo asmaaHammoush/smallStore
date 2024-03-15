@@ -6,6 +6,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Support\Facades\Auth;
 
 class ProductNotification extends Notification
 {
@@ -15,19 +16,17 @@ class ProductNotification extends Notification
     public $status;
     public $notificationMethod;
 
-
     /**
      * Create a new notification instance.
      *
      * @return void
      */
-    public function __construct($product,$user,$status,$notificationMethod)
+    public function __construct($product,$user,$status, $notificationMethod)
     {
         $this->product = $product;
         $this->user = $user;
         $this->status = $status;
         $this->notificationMethod = $notificationMethod;
-
     }
 
     /**
@@ -61,7 +60,7 @@ class ProductNotification extends Notification
             ->mailer('smtp')
             ->subject('status product')
             ->greeting('Hello '.$notifiable->name)
-            ->line('product '.$this->product .' that add it is '.$this->status);
+            ->line('product '.$this->product .' that add it is '.$this->status.'by Admin');
     }
 
     /**

@@ -28,10 +28,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot()
     {
-        Gate::define('isAdmin',function ($user){
-            return $user->role =='admin';
-        });
-
         Relation::morphMap([
             'users' => User::class,
             'categories' => Category::class,

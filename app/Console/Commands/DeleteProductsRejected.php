@@ -40,10 +40,10 @@ class DeleteProductsRejected extends Command
      */
     public function handle()
     {
-        $products = Product::where('status','reject')->get();
+        $products = Product::where('status','reject')->with('user')->get();
         foreach ($products as $product) {
             $product->delete();
-            $user = User::find($product->user_id);
+            $user =$product->user;
             $user->notify(new UserNotification($product->name));
         }
     }

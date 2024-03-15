@@ -1,10 +1,5 @@
 <?php
 
-use App\Http\Controllers\Auth\AuthController;
-use App\Http\Controllers\CategoryController;
-use App\Http\Controllers\productController;
-use App\Http\Controllers\userController;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 /*

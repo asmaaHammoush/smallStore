@@ -31,7 +31,7 @@ trait processImageTrait{
 
     public function updatePhoto($request, $oldPhoto,$directory)
     {
-        if (file_exists($oldPhoto)) {
+        if ($oldPhoto!=[]) {
             unlink($oldPhoto);
         }
 

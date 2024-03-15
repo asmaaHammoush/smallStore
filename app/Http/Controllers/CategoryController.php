@@ -27,10 +27,6 @@ class CategoryController extends Controller
             ->whereNull('parent_id')
             ->containLittera()
             ->get();
-
-        if (!$categories) {
-            return $this->responseError('categories not found',404);
-        }
         return $this->success($categories,'Categories retrieved successfully');
     }
 
@@ -55,10 +51,9 @@ class CategoryController extends Controller
     public function store(StoreCategoryRequest $request)
     {
         $imageName = $this->uploadPhoto($request, 'categories');
-        $success = false;
        $category =new Category();
 
-        DB::transaction(function () use ($request, $imageName, &$success, &$category) {
+        DB::transaction(function () use ($request, $imageName, &$category) {
         $category = Category::create([
             'name' => $request->name,
             'description'=>$request->description,
@@ -67,14 +62,9 @@ class CategoryController extends Controller
             'photo' => $imageName[0]
         ])->save();
             if (!$category) {
-                $success = false;
-                return;
+                return $this->responseError('Category failed',404);
             }
-            $success = true;
         });
-        if (!$success) {
-            return $this->responseError('Category failed',404);
-        }
         return $this->success($category,'Category created successfully');
     }
 
@@ -90,9 +80,6 @@ class CategoryController extends Controller
         $category = Category::categoryWithSub()
             ->containLittera()
             ->find($id);
-        if (!$category) {
-            return $this->responseError('category not found',404);
-        }
         return $this->success($category,'Category retrieved successfully');
     }
 
@@ -115,26 +102,15 @@ class CategoryController extends Controller
      * @return \Illuminate\Http\Response
      */
 
-    public function update(UpdateCategoryRequest $request, $id)
+    public function update(UpdateCategoryRequest $request, Category $category)
     {
-        $category = Category::find($id);
-        if (!$category) {
-            return $this->responseError('category not found',404);
-        }
-        DB::transaction(function () use ($request,&$category) {
-            $category->update([
-             'name' => $request->name,
-             'description' => $request->description,
-             'parent_id' => $request->parent_id
-          ]);
-            $imageName = $this->updatePhoto($request,$category->image->photo,'categories');
-            $category->image()->update([
-            'photo' => $imageName[0]
-          ]);
+        DB::transaction(function () use ($request,$category) {
+            $category->fill([$request->all()])->update();
+            $current_images = $category->image()->pluck('photo')->toArray();
+            $imageName = $this->updatePhoto($request,$current_images,'categories');
+            $category->image()->update(['photo' => $imageName[0]]);
         });
-        $updatedCtegory = Category::with('image:imageable_id,photo')->find($id);
-
-       return $this->success($updatedCtegory,'Category updated successfully');
+       return $this->responseSuccess( 'Category updated successfully');
     }
 
     /**
@@ -143,28 +119,16 @@ class CategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(Category $category)
     {
-        $category = Category::find($id);
-        $success = false;
-        if (!$category) {
-            return $this->responseError('category not found',404);
-        }
-
-        DB::transaction(function () use (&$category,$id,&$success) {
+        DB::transaction(function () use ($category) {
             $this->deletePhoto($category->image->photo);
             $category->image()->delete();
             $category->delete();
-            $category = Category::find($id);
-            if (!$category) {
-                $success = true;
-                return;
+            if ($category) {
+                return $this->responseError('deleted failed',400);
             }
-            $success = false;
         });
-            if ($success) {
-            return $this->responseSuccess('Category deleted successfully');
-        }
-           return $this->responseError('deleted failed',400);
+        return $this->responseSuccess('Category deleted successfully');
     }
 }

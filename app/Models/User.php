@@ -23,7 +23,6 @@ class User extends Authenticatable
         'email',
         'password',
         'product_id',
-        'role'
     ];
 
 
@@ -57,8 +56,6 @@ class User extends Authenticatable
     {
         return Carbon::parse($this->created_at)->diffForHumans();
     }
-
-
 
     public function image()
     {

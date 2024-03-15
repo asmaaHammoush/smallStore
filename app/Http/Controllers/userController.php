@@ -24,9 +24,6 @@ class userController extends Controller
     public function index()
     {
         $users = User::with('image:imageable_id,photo')->get();
-        if (!$users) {
-            return $this->responseError('users not found',404);
-        }
         return $this->success($users,'ok');
     }
 
@@ -50,30 +47,20 @@ class userController extends Controller
     public function store(StoreUserRequest $request)
     {
         $imageName = $this->uploadPhoto($request, 'users');
-        $success = false;
         $user = new User();
-
-        DB::transaction(function () use ($request, $imageName, &$success, &$user) {
+        DB::transaction(function () use ($request, $imageName, &$user) {
             $user = User::create([
                 'name' => $request->name,
                 'email' => $request->email,
                 'password' => $request->password,
-            ]);
-                $user->image()->create([
+            ])->image()->create([
                 'photo' => $imageName[0]
             ]);
-
             if (!$user) {
-                $success = false;
-                return;
+                return $this->responseError('user failed stored',400);
             }
-            $success = true;
         });
-
-        if ($success) {
-            return $this->success($user, "ok");
-        }
-            return $this->responseError('user failed stored',400);
+        return $this->success($user, "ok");
 
     }
 
@@ -83,13 +70,10 @@ class userController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(User $user)
     {
-        $user = User::with('image:imageable_id,photo')->find($id);
-        if (!$user) {
-            return $this->responseError('user not found',404);
-        }
-         return $this->success($user,"ok");
+        $user->load('image:imageable_id,photo');
+        return $this->success($user, "ok");
     }
 
     /**

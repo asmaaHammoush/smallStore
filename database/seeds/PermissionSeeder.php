@@ -33,6 +33,8 @@ class PermissionSeeder extends Seeder
        $supervisor= Role::create(['name'=>'Supervisor']);
 
        $owner->permission()->sync($permissionsAll);
+        $permission= $owner->role->permission->firstWhere('name', 'update_Accessibility');
+        $permission->pivot->Accessibility='allow';
        $admin->permission()->sync($permissionsAll);
        $super_admin->permission()->sync($permissionsAll);
        $supervisor->permission()->sync($permissionsAll);

@@ -19,5 +19,6 @@ include __DIR__ . '/routesApi/auth.php';
 include __DIR__ . '/routesApi/products.php';
 include __DIR__ . '/routesApi/users.php';
 include __DIR__ . '/routesApi/categories.php';
+include __DIR__ .'/routesApi/permissions.php';
 });
 

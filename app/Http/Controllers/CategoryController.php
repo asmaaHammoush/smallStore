@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Traits\HttpResponses;
 use Illuminate\Http\Request;
 use App\Traits\processImageTrait;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
@@ -23,6 +24,7 @@ class CategoryController extends Controller
     use processImageTrait,HttpResponses;
     public function index()
     {
+        abort_if(!$this->authorize('showAll_category'),403,'Unauthorized');
         $categories = Category::categoryWithSub()
             ->whereNull('parent_id')
             ->containLittera()
@@ -50,6 +52,7 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request)
     {
+        abort_if(!$this->authorize('create_category'),403,'Unauthorized');
         $imageName = $this->uploadPhoto($request, 'categories');
        $category =new Category();
 
@@ -76,6 +79,7 @@ class CategoryController extends Controller
      */
     public function show($id)
     {
+        abort_if(!$this->authorize('view_category'),403,'Unauthorized');
 //        global scope
         $category = Category::categoryWithSub()
             ->containLittera()
@@ -104,6 +108,7 @@ class CategoryController extends Controller
 
     public function update(UpdateCategoryRequest $request, Category $category)
     {
+        abort_if(!$this->authorize('update_category'),403,'Unauthorized');
         DB::transaction(function () use ($request,$category) {
             $category->fill([$request->all()])->update();
             $current_images = $category->image()->pluck('photo')->toArray();
@@ -121,9 +126,12 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
+        abort_if(!$this->authorize('delete_category'),403,'Unauthorized');
         DB::transaction(function () use ($category) {
-            $this->deletePhoto($category->image->photo);
-            $category->image()->delete();
+            if ($category->image()->exists()) {
+                $this->deletePhoto($category->image->photo);
+                $category->image()->delete();
+            }
             $category->delete();
             if ($category) {
                 return $this->responseError('deleted failed',400);

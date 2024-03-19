@@ -3,6 +3,7 @@
 /** @var \Illuminate\Database\Eloquent\Factory $factory */
 
 use App\Models\Product;
+use App\Models\Role;
 use App\Models\User;
 use Faker\Generator as Faker;
 use Illuminate\Support\Facades\Hash;

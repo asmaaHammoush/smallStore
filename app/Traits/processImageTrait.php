@@ -31,15 +31,15 @@ trait processImageTrait{
 
     public function updatePhoto($request, $oldPhoto,$directory)
     {
-        if ($oldPhoto!=[]) {
+        if (file_exists($oldPhoto)) {
             unlink($oldPhoto);
         }
 
         $imagePaths = [];
         foreach ($request->file('photo') as $photo) {
             $imageName = time() . '.' . $photo->getClientOriginalExtension();
-            $photo->move(public_path($directory), $imageName);
-            $imagePaths[] = public_path($directory) . '/' . $imageName;
+            $path = $photo->store($directory, 'public');
+            $imagePaths[] = $path;
         }
 
         return $imagePaths;

@@ -10,6 +10,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 
 class userController extends Controller
@@ -23,6 +24,7 @@ class userController extends Controller
 
     public function index()
     {
+        abort_if(!$this->authorize('showAll_user'),403,'Unauthorized');
         $users = User::with('image:imageable_id,photo')->get();
         return $this->success($users,'ok');
     }
@@ -46,6 +48,7 @@ class userController extends Controller
 
     public function store(StoreUserRequest $request)
     {
+        abort_if(!$this->authorize('create_user'),403,'Unauthorized');
         $imageName = $this->uploadPhoto($request, 'users');
         $user = new User();
         DB::transaction(function () use ($request, $imageName, &$user) {
@@ -72,6 +75,7 @@ class userController extends Controller
      */
     public function show(User $user)
     {
+        abort_if(!$this->authorize('view_user'),403,'Unauthorized');
         $user->load('image:imageable_id,photo');
         return $this->success($user, "ok");
     }
@@ -94,16 +98,16 @@ class userController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function update(UpdateUserRequest $request, $id)
+    public function update(UpdateUserRequest $request, User $user)
     {
-        $user=User::find($id);
-        if (!$user) {
-            return $this->responseError('user not found',404);
-        }
+        abort_if(!$this->authorize('update_user'),403,'Unauthorized');
 
-        DB::transaction(function () use ($request,&$user) {
-            $imageName = $this->updatePhoto($request,$user->image->photo,'users');
-            $user->images()->delete();
+        DB::transaction(function () use ($request,$user) {
+            $imageName=null;
+            if ($user->image()->exists()) {
+                $imageName = $this->updatePhoto($request, $user->image->photo, 'users');
+                $user->image()->delete();
+            }
             $user->update([
             'name' => $request->name,
             'email' => $request->email,
@@ -114,8 +118,7 @@ class userController extends Controller
         ]);
 
         });
-        $updatedUser = User::with('image:imageable_id,photo')->find($id);
-        return $this->success($updatedUser,"ok");
+        return $this->success($user,"ok");
     }
 
     /**
@@ -124,25 +127,17 @@ class userController extends Controller
      * @param int $id
      * @return \Illuminate\Http\Response
      */
-    public function destroy($id)
+    public function destroy(User $user)
     {
-        $user = User::find($id);
-        $success = false;
-        if (!$user) {
-            return $this->responseError('user not found',404);
-        }
-        DB::transaction(function () use (&$user,$id,&$success) {
-            $this->deletePhoto($user->image->photo);
-            $user->image()->delete();
-            $user->delete();
-            $user = User::find($id);
-            if (!$user) {
-                $success = true;
-                return;
+        abort_if(!$this->authorize('delete_user'),403,'Unauthorized');
+        DB::transaction(function () use ($user) {
+            if ($user->image()->exists()) {
+                $this->deletePhoto($user->image->photo);
+                $user->image()->delete();
             }
-            $success = false;
+            $user->delete();
      });
-        if (!$success) {
+        if (!$user) {
           return $this->responseError('deleted failed',400);
         }
            return $this->responseSuccess('user deleted successfully');

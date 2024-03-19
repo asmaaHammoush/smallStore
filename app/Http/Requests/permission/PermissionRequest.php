@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\categories;
+namespace App\Http\Requests\permission;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class UpdateCategoryRequest extends FormRequest
+class PermissionRequest extends FormRequest
 {
     /**
      * Determine if the user is authorized to make this request.
@@ -24,13 +24,7 @@ class UpdateCategoryRequest extends FormRequest
     public function rules()
     {
         return [
-            'name' => 'string',
-            'description' => 'string|max:500',
-            'photo' => 'array|max:1',
-            'photo.*' => 'image
-            |dimensions:width=3840,height=2160
-            |mimes:gif,png,jpg,PNG,JPG,GIF
-            |max:2765',
+            'permission_id' =>'number|exists:permissions,id'
         ];
     }
 }

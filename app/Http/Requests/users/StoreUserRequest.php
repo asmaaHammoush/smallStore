@@ -32,7 +32,7 @@ class StoreUserRequest extends FormRequest
             'photo.*' => 'image
             |dimensions:width=3840,height=2160
             |mimes:gif,png,jpg,PNG,JPG,GIF
-            |max:2700',
+            |max:2765',
         ];
     }
 

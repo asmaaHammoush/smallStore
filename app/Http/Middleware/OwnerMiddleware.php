@@ -5,7 +5,7 @@ namespace App\Http\Middleware;
 use Closure;
 use Illuminate\Support\Facades\Auth;
 
-class AdminMiddleware
+class OwnerMiddleware
 {
     /**
      * Handle an incoming request.
@@ -17,7 +17,7 @@ class AdminMiddleware
     public function handle($request, Closure $next)
     {
         $user =Auth::user();
-        if ($user->role->name !== 'admin') {
+        if ($user->role->name !== 'Owner') {
             // User is not an admin, return unauthorized response
             return response()->json(['error' => 'Unauthorized'], 403);
         }

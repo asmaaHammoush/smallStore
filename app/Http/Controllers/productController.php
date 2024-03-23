@@ -11,7 +11,9 @@ use App\Notifications\ProductNotification;
 use App\Traits\HttpResponses;
 use App\Traits\processImageTrait;
 use App\Traits\Products;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
 class productController extends Controller
@@ -24,7 +26,7 @@ class productController extends Controller
     use processImageTrait,HttpResponses,Products;
     public function index()
     {
-        abort_if(!$this->authorize('showAll_product'),403,'Unauthorized');
+        throw_if(!$this->authorize('viewAny',Product::class),new AuthorizationException);
         $products = Product::with(['user:id,name', 'images:imageable_id,photo'])->get();
         return $this->success($products,'ok');
     }
@@ -47,7 +49,7 @@ class productController extends Controller
      */
     public function store(StoreProductRequest $request)
     {
-        abort_if(!$this->authorize('create_product'),403,'Unauthorized');
+        throw_if(!$this->authorize('create',Product::class),new AuthorizationException);
         $product =new Product();
         DB::transaction(function () use ($request, $product) {
            $product->fill($request->all())->save();
@@ -73,7 +75,7 @@ class productController extends Controller
      */
     public function show(Product $product)
     {
-        abort_if(!$this->authorize('view_product'),403,'Unauthorized');
+        throw_if(!$this->authorize('view',$product),new AuthorizationException);
         return $this->success(
             $product->load('user:id,name','images:imageable_id,photo')
             ,'Product retrieved successfully');
@@ -88,7 +90,7 @@ class productController extends Controller
      */
     public function update(UpdateProductRequest $request,Product $product)
     {
-        abort_if(!$this->authorize('update_product'),403,'Unauthorized');
+        throw_if(!$this->authorize('update',$product),new AuthorizationException);
         DB::transaction(function () use ($request, $product) {
             $product->fill([$request->all()])->update();
             $oldImages = $product->images()->pluck('id')->toArray();
@@ -111,7 +113,7 @@ class productController extends Controller
      */
     public function destroy(Product $product)
     {
-        abort_if(!$this->authorize('delete_product'),403,'Unauthorized');
+        throw_if(!$this->authorize('delete',$product),new AuthorizationException);
         DB::transaction(function () use ($product) {
             if ($product->images->exists()) {
                 foreach ($product->images as $pic) {

@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use App\Traits\HttpResponses;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Notifiable,HasApiTokens;
+    use Notifiable,HasApiTokens,HttpResponses;
 
     /**
      * The attributes that are mass assignable.
@@ -69,5 +71,14 @@ class User extends Authenticatable
 
     public function role(){
         return $this->belongsTo(Role::class);
+    }
+
+    public function hasPermissionTo($permission){
+        $auth=Auth::user();
+        $permission = $auth->role->permission->firstWhere('name', $permission);
+        if ( $permission->pivot->Accessibility == 'allow') {
+            return true;
+        }else
+        return false;
     }
 }

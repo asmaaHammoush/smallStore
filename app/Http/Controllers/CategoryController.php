@@ -8,6 +8,7 @@ use App\Http\Requests\categories\StoreCategoryRequest;
 use App\Models\Product;
 use App\Models\User;
 use App\Traits\HttpResponses;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use App\Traits\processImageTrait;
 use Illuminate\Support\Facades\Auth;
@@ -24,7 +25,7 @@ class CategoryController extends Controller
     use processImageTrait,HttpResponses;
     public function index()
     {
-        abort_if(!$this->authorize('showAll_category'),403,'Unauthorized');
+        throw_if(!$this->authorize('viewAny',Category::class),new AuthorizationException);
         $categories = Category::categoryWithSub()
             ->whereNull('parent_id')
             ->containLittera()
@@ -52,7 +53,7 @@ class CategoryController extends Controller
 
     public function store(StoreCategoryRequest $request)
     {
-        abort_if(!$this->authorize('create_category'),403,'Unauthorized');
+        throw_if(!$this->authorize('create',Category::class),new AuthorizationException);
         $imageName = $this->uploadPhoto($request, 'categories');
        $category =new Category();
 
@@ -77,13 +78,12 @@ class CategoryController extends Controller
      * @param  int  $id
      * @return \Illuminate\Http\Response
      */
-    public function show($id)
+    public function show(Category $category)
     {
-        abort_if(!$this->authorize('view_category'),403,'Unauthorized');
+        throw_if(!$this->authorize('view',$category),new AuthorizationException);
 //        global scope
-        $category = Category::categoryWithSub()
-            ->containLittera()
-            ->find($id);
+        $category = $category->categoryWithSub()
+            ->containLittera();
         return $this->success($category,'Category retrieved successfully');
     }
 
@@ -108,7 +108,7 @@ class CategoryController extends Controller
 
     public function update(UpdateCategoryRequest $request, Category $category)
     {
-        abort_if(!$this->authorize('update_category'),403,'Unauthorized');
+        throw_if(!$this->authorize('update',$category),new AuthorizationException);
         DB::transaction(function () use ($request,$category) {
             $category->fill([$request->all()])->update();
             $current_images = $category->image()->pluck('photo')->toArray();
@@ -126,7 +126,7 @@ class CategoryController extends Controller
      */
     public function destroy(Category $category)
     {
-        abort_if(!$this->authorize('delete_category'),403,'Unauthorized');
+      throw_if($this->authorize('delete',Category::class),new AuthorizationException);
         DB::transaction(function () use ($category) {
             if ($category->image()->exists()) {
                 $this->deletePhoto($category->image->photo);

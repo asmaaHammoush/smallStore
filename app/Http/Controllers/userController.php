@@ -7,6 +7,7 @@ use App\Http\Requests\users\UpdateUserRequest;
 use App\Traits\HttpResponses;
 use App\Traits\processImageTrait;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -24,7 +25,7 @@ class userController extends Controller
 
     public function index()
     {
-        abort_if(!$this->authorize('showAll_user'),403,'Unauthorized');
+        throw_if(!$this->authorize('viewAny',User::class),new AuthorizationException);
         $users = User::with('image:imageable_id,photo')->get();
         return $this->success($users,'ok');
     }
@@ -48,7 +49,7 @@ class userController extends Controller
 
     public function store(StoreUserRequest $request)
     {
-        abort_if(!$this->authorize('create_user'),403,'Unauthorized');
+        throw_if(!$this->authorize('create',User::class),new AuthorizationException);
         $imageName = $this->uploadPhoto($request, 'users');
         $user = new User();
         DB::transaction(function () use ($request, $imageName, &$user) {
@@ -75,7 +76,7 @@ class userController extends Controller
      */
     public function show(User $user)
     {
-        abort_if(!$this->authorize('view_user'),403,'Unauthorized');
+        throw_if(!$this->authorize('view',$user),new AuthorizationException);
         $user->load('image:imageable_id,photo');
         return $this->success($user, "ok");
     }
@@ -100,7 +101,7 @@ class userController extends Controller
      */
     public function update(UpdateUserRequest $request, User $user)
     {
-        abort_if(!$this->authorize('update_user'),403,'Unauthorized');
+        throw_if(!$this->authorize('update',$user),new AuthorizationException);
 
         DB::transaction(function () use ($request,$user) {
             $imageName=null;
@@ -129,7 +130,7 @@ class userController extends Controller
      */
     public function destroy(User $user)
     {
-        abort_if(!$this->authorize('delete_user'),403,'Unauthorized');
+        throw_if(!$this->authorize('delete',$user),new AuthorizationException);
         DB::transaction(function () use ($user) {
             if ($user->image()->exists()) {
                 $this->deletePhoto($user->image->photo);

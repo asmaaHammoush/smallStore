@@ -2,6 +2,7 @@
 
 namespace App\Exceptions;
 
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Foundation\Exceptions\Handler as ExceptionHandler;
 use PHPUnit\Framework\Constraint\Exception;
@@ -56,6 +57,12 @@ class Handler extends ExceptionHandler
             return response()->json([
                 'message' => explode('\\', $e->getModel())[2] . ' Not Found.',
             ], 404);
+        }
+
+        if ($e instanceof AuthorizationException) {
+            return response()->json([
+                'message' => 'Unauthorized',
+            ], 403);
         }
         return parent::render($request, $e);
     }

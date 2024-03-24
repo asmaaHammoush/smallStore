@@ -15,7 +15,7 @@ class Category extends Model
         'created_at',
         'parent_id',
     ];
-    protected $appends = ['created_from'];
+    protected $appends = ['created_from','products_count'];
 
     public function getCreatedFromAttribute()
     {
@@ -61,5 +61,9 @@ class Category extends Model
     public function parent()
     {
         return $this->belongsTo(Category::class, 'parent_id');
+    }
+
+    public function getProductsCountAttribute(){
+        return $this->product()->count();
     }
 }

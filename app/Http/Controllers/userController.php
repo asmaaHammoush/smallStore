@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Filters\UserFilter;
+use App\Http\Requests\filters\FilterRequest;
 use App\Http\Requests\users\StoreUserRequest;
 use App\Http\Requests\users\UpdateUserRequest;
 use App\Traits\HttpResponses;
@@ -16,17 +18,20 @@ use Illuminate\Support\Facades\Gate;
 
 class userController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    private $userFilter;
+
+    public function __construct(UserFilter $userFilter)
+    {
+        $this->userFilter = $userFilter;
+    }
+
     use processImageTrait,HttpResponses;
 
-    public function index()
+    public function index(FilterRequest $request)
     {
         throw_if(!$this->authorize('viewAny',User::class),new AuthorizationException);
         $users = User::with('image:imageable_id,photo')->get();
+        $users=$this->userFilter->applyFiltersUser($users, $request->all());
         return $this->success($users,'ok');
     }
 
@@ -137,7 +142,7 @@ class userController extends Controller
                 $user->image()->delete();
             }
             $user->delete();
-     });
+        });
         if (!$user) {
           return $this->responseError('deleted failed',400);
         }

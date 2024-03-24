@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Filters\ProductFilter;
+use App\Http\Requests\filters\FilterRequest;
 use App\Http\Requests\products\StoreProductRequest;
 use App\Http\Requests\products\UpdateProductRequest;
 use App\Models\Product;
@@ -18,16 +20,19 @@ use Illuminate\Support\Facades\DB;
 
 class productController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    private $productFilter;
+
+    public function __construct(ProductFilter $productFilter)
+    {
+        $this->productFilter = $productFilter;
+    }
+
     use processImageTrait,HttpResponses,Products;
-    public function index()
+    public function index(FilterRequest $request)
     {
         throw_if(!$this->authorize('viewAny',Product::class),new AuthorizationException);
-        $products = Product::with(['user:id,name', 'images:imageable_id,photo'])->get();
+        $products =Product::with(['category:id,name','user:id,name', 'images:imageable_id,photo'])->get();
+        $products=$this->productFilter->applyFiltersProduct($products, $request->all());
         return $this->success($products,'ok');
     }
 

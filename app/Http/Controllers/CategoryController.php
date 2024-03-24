@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Filters\CategoryFilter;
 use App\Http\Requests\categories\UpdateCategoryRequest;
+use App\Http\Requests\filters\FilterRequest;
 use App\Models\Category;
 use App\Http\Requests\categories\StoreCategoryRequest;
 use App\Models\Product;
@@ -16,20 +18,21 @@ use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     *
-     * @return \Illuminate\Http\Response
-     */
+    private $categoryFilter;
 
+    public function __construct(CategoryFilter $categoryFilter)
+    {
+        $this->categoryFilter = $categoryFilter;
+    }
     use processImageTrait,HttpResponses;
-    public function index()
+    public function index(FilterRequest $request)
     {
         throw_if(!$this->authorize('viewAny',Category::class),new AuthorizationException);
         $categories = Category::categoryWithSub()
             ->whereNull('parent_id')
             ->containLittera()
             ->get();
+        $categories=$this->categoryFilter->applyFiltersCategory($categories, $request->all());
         return $this->success($categories,'Categories retrieved successfully');
     }
 

@@ -47,7 +47,7 @@ class User extends Authenticatable
         'email_verified_at' => 'datetime',
     ];
 
-    protected $appends = ['created_from'];
+    protected $appends = ['created_from','products_count'];
 
     public function setPasswordAttribute($value)
     {
@@ -80,5 +80,9 @@ class User extends Authenticatable
             return true;
         }else
         return false;
+    }
+
+    public function getProductsCountAttribute(){
+        return $this->product()->count();
     }
 }

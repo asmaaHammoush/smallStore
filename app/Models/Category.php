@@ -1,13 +1,14 @@
 <?php
 
 namespace App\Models;
+use App\Traits\Filter;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 
 class Category extends Model
 {
-
+use Filter;
     protected $fillable = [
         'name',
         'description',
@@ -15,7 +16,7 @@ class Category extends Model
         'created_at',
         'parent_id',
     ];
-    protected $appends = ['created_from','products_count'];
+    protected $appends = ['created_from','product_count'];
 
     public function getCreatedFromAttribute()
     {
@@ -55,7 +56,7 @@ class Category extends Model
                 'name',
                 'parent_id',
                 'created_at'
-            ])->with(['childs', 'product.user']);;
+            ])->with(['childs', 'product.user']);
     }
 
     public function parent()
@@ -63,7 +64,8 @@ class Category extends Model
         return $this->belongsTo(Category::class, 'parent_id');
     }
 
-    public function getProductsCountAttribute(){
+    public function getProductCountAttribute(){
         return $this->product()->count();
     }
+
 }

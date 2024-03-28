@@ -6,6 +6,7 @@ use App\Filters\UserFilter;
 use App\Http\Requests\filters\FilterRequest;
 use App\Http\Requests\users\StoreUserRequest;
 use App\Http\Requests\users\UpdateUserRequest;
+use App\Traits\Filter;
 use App\Traits\HttpResponses;
 use App\Traits\processImageTrait;
 use App\Models\User;
@@ -18,20 +19,14 @@ use Illuminate\Support\Facades\Gate;
 
 class userController extends Controller
 {
-    private $userFilter;
-
-    public function __construct(UserFilter $userFilter)
-    {
-        $this->userFilter = $userFilter;
-    }
-
-    use processImageTrait,HttpResponses;
+    use processImageTrait,HttpResponses,Filter;
 
     public function index(FilterRequest $request)
     {
         throw_if(!$this->authorize('viewAny',User::class),new AuthorizationException);
-        $users = User::with('image:imageable_id,photo')->get();
-        $users=$this->userFilter->applyFiltersUser($users, $request->all());
+        $users = User::with('image:imageable_id,photo')
+            ->filter($request->all())
+            ->get();
         return $this->success($users,'ok');
     }
 

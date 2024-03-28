@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\Filter;
 use App\Traits\HttpResponses;
 use Carbon\Carbon;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
@@ -13,7 +14,7 @@ use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
 {
-    use Notifiable,HasApiTokens,HttpResponses;
+    use Notifiable,HasApiTokens,HttpResponses,Filter;
 
     /**
      * The attributes that are mass assignable.

@@ -18,21 +18,16 @@ use Illuminate\Support\Facades\DB;
 
 class CategoryController extends Controller
 {
-    private $categoryFilter;
-
-    public function __construct(CategoryFilter $categoryFilter)
-    {
-        $this->categoryFilter = $categoryFilter;
-    }
     use processImageTrait,HttpResponses;
     public function index(FilterRequest $request)
     {
         throw_if(!$this->authorize('viewAny',Category::class),new AuthorizationException);
-        $categories = Category::categoryWithSub()
+        $categories = Category::
+             categoryWithSub()
             ->whereNull('parent_id')
             ->containLittera()
+            ->filter($request->all())
             ->get();
-        $categories=$this->categoryFilter->applyFiltersCategory($categories, $request->all());
         return $this->success($categories,'Categories retrieved successfully');
     }
 
